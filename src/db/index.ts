@@ -13,7 +13,7 @@ const pool =
   globalForDb.__rawiaFinancePool ??
   new Pool({
     connectionString,
-    max: 10,
+    max: process.env.VERCEL ? 3 : 10,
     ssl: connectionString.includes("sslmode=require") ? { rejectUnauthorized: false } : undefined,
   });
 if (process.env.NODE_ENV !== "production") globalForDb.__rawiaFinancePool = pool;
