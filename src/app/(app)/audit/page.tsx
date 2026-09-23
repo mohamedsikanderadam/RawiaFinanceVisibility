@@ -3,6 +3,7 @@ import { Card, PageHeader } from "@/components/ui";
 import { fmtStamp } from "@/lib/dates";
 import { auditFilter, queryAudit } from "@/lib/server/audit";
 import { pageSession } from "@/lib/server/auth";
+import { Decimal } from "@/lib/money";
 
 export const metadata = { title: "Audit trail" };
 
@@ -21,10 +22,17 @@ const AREAS = [
   ["auth.", "Sign-ins"],
 ] as const;
 
+const LONG_DECIMAL = /(?<![\d:.])-?\d+\.\d{4,}/g;
+
+function shorten(s: string): string {
+  return s.replace(LONG_DECIMAL, (n) => new Decimal(n).toDecimalPlaces(2).toFixed(2));
+}
+
+/** Display summary only; the CSV export keeps exact values. */
 function summarize(d: Record<string, unknown>): string {
   return Object.entries(d)
     .filter(([k]) => k !== "value")
-    .map(([k, v]) => `${k}: ${typeof v === "object" ? JSON.stringify(v) : String(v)}`)
+    .map(([k, v]) => `${k}: ${shorten(typeof v === "object" ? JSON.stringify(v) : String(v))}`)
     .join(" · ")
     .slice(0, 400);
 }
