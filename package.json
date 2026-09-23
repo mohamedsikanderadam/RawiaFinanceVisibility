@@ -16,6 +16,8 @@
     "sample-report": "tsx scripts/sample-report.ts"
   },
   "dependencies": {
+    "@neon/config": "^1.7.3",
+    "@neon/env": "^1.4.4",
     "bcryptjs": "^3.0.3",
     "decimal.js": "10.6.0",
     "drizzle-orm": "^0.45.2",
