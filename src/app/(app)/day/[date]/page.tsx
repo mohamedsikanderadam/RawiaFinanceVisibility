@@ -20,7 +20,7 @@ import {
 import { addDays, fmtDate, fmtStamp, isIsoDate } from "@/lib/dates";
 import { reconcileSold } from "@/lib/engine/reconcile";
 import { BUCKET_LABEL, type DayResult } from "@/lib/engine/types";
-import { D, fmtNum } from "@/lib/money";
+import { D, fmtAed, fmtNum } from "@/lib/money";
 import { METRIC_GROUPS, groupKeys } from "@/lib/report";
 import { can, pageSession } from "@/lib/server/auth";
 import { costingFor, snapshotOf } from "@/lib/server/costing";
@@ -92,6 +92,11 @@ export default async function DayPage({
     can(s.role, "adjust") && (view.state !== "finalized" || live);
   const decisions = new Map((r?.decisions ?? []).map((d) => [d.orderKey, d]));
   const isFinal = view.state === "finalized" && !live && !historic;
+  const shownRev = historic
+    ? revisions.find((v) => v.revision === revParam)
+    : null;
+  const finalizedAt = shownRev ? shownRev.finalizedAt : view.finalizedAt;
+  const finalizedBy = shownRev ? shownRev.name : view.finalizedBy;
 
   return (
     <>
@@ -99,9 +104,19 @@ export default async function DayPage({
         title={fmtDate(date)}
         sub={
           <span className="flex flex-wrap items-center gap-2">
-            <DayStateBadge state={view.state} revision={view.revision} />
-            {historic && <StatusBadge status="confirmed" />}
-            {historic && <span>Showing revision {revParam}</span>}
+            {historic ? (
+              <>
+                <DayStateBadge state="finalized" revision={revParam} />
+                <span>
+                  Showing revision {revParam}
+                  {shownRev?.supersededAt
+                    ? ` (superseded ${fmtStamp(shownRev.supersededAt)}; current is r${view.revision})`
+                    : " (current)"}
+                </span>
+              </>
+            ) : (
+              <DayStateBadge state={view.state} revision={view.revision} />
+            )}
             {live && view.state === "finalized" && (
               <span className="font-semibold text-red">
                 Showing live recalculation (not the finalized report)
@@ -113,9 +128,9 @@ export default async function DayPage({
                 {r.settingsVersionId ?? "default"}
               </span>
             )}
-            {view.finalizedAt && (
+            {finalizedAt && (
               <span>
-                · Finalized {fmtStamp(view.finalizedAt)} by {view.finalizedBy}
+                · Finalized {fmtStamp(finalizedAt)} by {finalizedBy}
               </span>
             )}
           </span>
@@ -134,7 +149,7 @@ export default async function DayPage({
             >
               Next →
             </Link>
-            {r && (
+            {r && fin && (
               <>
                 <a
                   className="btn btn-primary btn-sm"
@@ -158,11 +173,11 @@ export default async function DayPage({
         {view.noCostingReason && (
           <Alert tone="error">{view.noCostingReason}</Alert>
         )}
-        {view.liveDiff && !live && (
+        {fin && view.liveDiff && !live && !historic && (
           <Alert tone="warning">
             This finalized report differs from a recalculation with current data
-            (reserve {view.liveDiff.reserve ?? "—"}, net sales{" "}
-            {view.liveDiff.netSales ?? "—"}). The finalized figures are kept.{" "}
+            (reserve {fmtAed(view.liveDiff.reserve)}, net sales{" "}
+            {fmtAed(view.liveDiff.netSales)}). The finalized figures are kept.{" "}
             <Link
               className="font-semibold underline"
               href={`/day/${date}?live=1`}
@@ -254,7 +269,7 @@ export default async function DayPage({
                     {can(s.role, "ledger") && (
                       <Link
                         className="font-semibold text-red underline"
-                        href={`/reserve?from=${date}&to=${date}&preset=custom&prefill=${r.metrics.reserve?.value ?? ""}`}
+                        href={`/reserve?from=${date}&to=${date}&preset=custom&prefill=${r.metrics.reserve ? D(r.metrics.reserve.value).toDecimalPlaces(2).toFixed(2) : ""}`}
                       >
                         Record set-aside
                       </Link>
@@ -354,14 +369,22 @@ export default async function DayPage({
                   : r.karak.source === "no_sales"
                     ? "no Karak sold, no adjustment"
                     : "default"}
-                ) · {fmtNum(r.karak.cups, 0)} cups sold · Cost{" "}
-                <Money v={r.karak.cost} className="font-bold" />
+                ) · {fmtNum(r.karak.cups, 0)} cups sold
+                {fin && (
+                  <>
+                    {" "}
+                    · Cost <Money v={r.karak.cost} className="font-bold" />
+                  </>
+                )}
               </p>
-              <p className="text-xs text-ink-soft">
-                Allocated to batch ingredients <Money v={r.karak.allocated} />,
-                unallocated batch reserve <Money v={r.karak.unallocated} />.
-                Per-cup recipe cost is not charged; per-cup packaging is.
-              </p>
+              {fin && (
+                <p className="text-xs text-ink-soft">
+                  Allocated to batch ingredients{" "}
+                  <Money v={r.karak.allocated} />, unallocated batch reserve{" "}
+                  <Money v={r.karak.unallocated} />. Per-cup recipe cost is not
+                  charged; per-cup packaging is.
+                </p>
+              )}
               {canAdjust && <AdjustmentForm date={date} mode="batch" />}
             </Card>
             {fin && (
@@ -440,7 +463,7 @@ export default async function DayPage({
                 <th>Type</th>
                 <th>Item</th>
                 <th className="r">Qty</th>
-                <th className="r">Amount</th>
+                {fin && <th className="r">Amount</th>}
                 <th>Note</th>
                 <th>By</th>
                 <th />
@@ -463,9 +486,11 @@ export default async function DayPage({
                         : "—"}
                   </td>
                   <td className="r">{a.qty}</td>
-                  <td className="r">
-                    <Money v={a.amount} />
-                  </td>
+                  {fin && (
+                    <td className="r">
+                      <Money v={a.amount} />
+                    </td>
+                  )}
                   <td>{a.note}</td>
                   <td className="text-xs">
                     {name} · {fmtStamp(a.createdAt)}
@@ -523,9 +548,13 @@ export default async function DayPage({
                   <th>Status</th>
                   <th>Channel</th>
                   <th>Items</th>
-                  <th className="r">Total</th>
-                  <th className="r">After discount</th>
-                  <th className="r">Refunded</th>
+                  {fin && (
+                    <>
+                      <th className="r">Total</th>
+                      <th className="r">After discount</th>
+                      <th className="r">Refunded</th>
+                    </>
+                  )}
                   <th>Payment</th>
                   <th>Prepared?</th>
                 </tr>
@@ -552,15 +581,19 @@ export default async function DayPage({
                         {o.deliveryApp ?? o.spotType ?? "—"}
                       </td>
                       <td className="max-w-xs text-xs">{o.itemsText}</td>
-                      <td className="r">
-                        <Money v={o.totalSales} />
-                      </td>
-                      <td className="r">
-                        <Money v={o.salesAfterDiscount} />
-                      </td>
-                      <td className="r">
-                        <Money v={o.refunded} />
-                      </td>
+                      {fin && (
+                        <>
+                          <td className="r">
+                            <Money v={o.totalSales} />
+                          </td>
+                          <td className="r">
+                            <Money v={o.salesAfterDiscount} />
+                          </td>
+                          <td className="r">
+                            <Money v={o.refunded} />
+                          </td>
+                        </>
+                      )}
                       <td className="text-xs">
                         {o.paymentRaw ?? (
                           <span className="font-semibold text-red">

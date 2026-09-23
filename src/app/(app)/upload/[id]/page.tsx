@@ -29,6 +29,7 @@ export default async function PreviewPage({ params }: { params: Promise<{ id: st
   const costing = await costingFor(p.selectedDate ?? p.dates[0]?.date ?? dubaiToday());
   const menu = costing?.snapshot.menu.map((m) => ({ code: m.code, name: m.name })) ?? [];
   const canMap = can(s.role, "map");
+  const fin = can(s.role, "view_finance");
   const unmatched = p.items.filter((i) => !i.match.menuCode && i.match.how !== "ignored");
   const incomplete = p.items.filter((i) => i.match.menuCode && i.costIncomplete);
   const finalizedInScope = p.dates.filter((d) => d.inScope && d.finalized);
@@ -108,6 +109,9 @@ export default async function PreviewPage({ params }: { params: Promise<{ id: st
             <dd className="num text-right">{p.totals.orders}</dd>
             <dt>Items</dt>
             <dd className="num text-right">{p.totals.units}</dd>
+          </dl>
+          {fin && (
+          <dl className="mt-1 grid grid-cols-2 gap-y-1 text-sm">
             <dt>Sales before discounts</dt>
             <dd className="text-right">
               <Money v={p.totals.totalSales} />
@@ -129,6 +133,7 @@ export default async function PreviewPage({ params }: { params: Promise<{ id: st
               <Money v={p.totals.vat} />
             </dd>
           </dl>
+          )}
         </Card>
         <Card title="Duplicate check">
           <ul className="space-y-1 text-sm">
@@ -147,9 +152,11 @@ export default async function PreviewPage({ params }: { params: Promise<{ id: st
                 <tr key={x.method}>
                   <td className={x.method.startsWith("unknown") ? "font-semibold text-red" : ""}>{x.method}</td>
                   <td className="r">{x.orders}</td>
-                  <td className="r">
-                    <Money v={x.amount} />
-                  </td>
+                  {fin && (
+                    <td className="r">
+                      <Money v={x.amount} />
+                    </td>
+                  )}
                 </tr>
               ))}
             </tbody>
@@ -163,9 +170,11 @@ export default async function PreviewPage({ params }: { params: Promise<{ id: st
                 <tr key={x.channel}>
                   <td>{x.channel.replace("_", " ")}</td>
                   <td className="r">{x.orders}</td>
-                  <td className="r">
-                    <Money v={x.amount} />
-                  </td>
+                  {fin && (
+                    <td className="r">
+                      <Money v={x.amount} />
+                    </td>
+                  )}
                 </tr>
               ))}
             </tbody>
@@ -228,10 +237,14 @@ export default async function PreviewPage({ params }: { params: Promise<{ id: st
                 <th>Status</th>
                 <th>Channel</th>
                 <th>Items</th>
-                <th className="r">Total</th>
-                <th className="r">Discount</th>
-                <th className="r">After disc.</th>
-                <th className="r">Refunded</th>
+                {fin && (
+                  <>
+                    <th className="r">Total</th>
+                    <th className="r">Discount</th>
+                    <th className="r">After disc.</th>
+                    <th className="r">Refunded</th>
+                  </>
+                )}
                 <th>Payment</th>
               </tr>
             </thead>
@@ -257,18 +270,22 @@ export default async function PreviewPage({ params }: { params: Promise<{ id: st
                   </td>
                   <td className="text-xs">{o.channel.replace("_", " ")}</td>
                   <td className="max-w-xs text-xs">{o.itemsText}</td>
-                  <td className="r">
-                    <Money v={o.totalSales} />
-                  </td>
-                  <td className="r">
-                    <Money v={o.discountAmount} />
-                  </td>
-                  <td className="r">
-                    <Money v={o.salesAfterDiscount} />
-                  </td>
-                  <td className="r">
-                    <Money v={o.refunded} />
-                  </td>
+                  {fin && (
+                    <>
+                      <td className="r">
+                        <Money v={o.totalSales} />
+                      </td>
+                      <td className="r">
+                        <Money v={o.discountAmount} />
+                      </td>
+                      <td className="r">
+                        <Money v={o.salesAfterDiscount} />
+                      </td>
+                      <td className="r">
+                        <Money v={o.refunded} />
+                      </td>
+                    </>
+                  )}
                   <td className="text-xs">{o.paymentRaw ?? <span className="text-red">blank</span>}</td>
                 </tr>
               ))}
