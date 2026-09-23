@@ -1,0 +1,83 @@
+@import "tailwindcss";
+
+/* RAWIA brand palette */
+:root {
+  --red: #b63a2b;
+  --red-deep: #8e2a1f;
+  --cream: #f5f0e8;
+  --cream-deep: #eadfcf;
+  --olive: #6e7a3a;
+  --olive-soft: #dfe6c8;
+  --brown: #311f15;
+  --dark: #151400;
+  --ink-soft: #5b544a;
+  --amber: #b7791f;
+  --amber-soft: #f6e7c8;
+}
+
+@theme inline {
+  --color-red: var(--red);
+  --color-red-deep: var(--red-deep);
+  --color-cream: var(--cream);
+  --color-cream-deep: var(--cream-deep);
+  --color-olive: var(--olive);
+  --color-olive-soft: var(--olive-soft);
+  --color-brown: var(--brown);
+  --color-dark: var(--dark);
+  --color-ink-soft: var(--ink-soft);
+  --color-amber: var(--amber);
+  --color-amber-soft: var(--amber-soft);
+  --font-sans: "Open Sans", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+}
+
+html,
+body {
+  background: var(--cream);
+  color: var(--dark);
+}
+
+.num {
+  font-variant-numeric: tabular-nums;
+}
+
+table.data {
+  @apply w-full text-sm;
+}
+table.data th {
+  @apply text-left font-semibold text-ink-soft text-xs uppercase tracking-wide px-3 py-2 border-b border-cream-deep bg-cream/60 whitespace-nowrap;
+}
+table.data td {
+  @apply px-3 py-2 border-b border-cream-deep/70 align-top;
+}
+table.data tr:hover td {
+  @apply bg-cream/50;
+}
+table.data td.r,
+table.data th.r {
+  @apply text-right tabular-nums;
+}
+
+.btn {
+  @apply inline-flex items-center justify-center gap-2 rounded-lg px-3.5 py-2 text-sm font-semibold transition disabled:opacity-50 disabled:cursor-not-allowed;
+}
+.btn-primary {
+  @apply bg-red text-cream hover:bg-red-deep;
+}
+.btn-olive {
+  @apply bg-olive text-cream hover:brightness-95;
+}
+.btn-ghost {
+  @apply bg-white border border-cream-deep text-brown hover:bg-cream;
+}
+.btn-sm {
+  @apply px-2.5 py-1 text-xs;
+}
+.input {
+  @apply w-full rounded-lg border border-cream-deep bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-olive/40;
+}
+.label {
+  @apply block text-xs font-semibold uppercase tracking-wide text-ink-soft mb-1;
+}
+.card {
+  @apply rounded-2xl bg-white shadow-sm ring-1 ring-cream-deep;
+}
