@@ -51,7 +51,8 @@ export function finalizeSnapshot(snap: CostingSnapshot): CostingSnapshot {
 export type CostingOverride =
   | { type: "item_cost"; itemKey: string; unitCost: string; note: string }
   | { type: "item_zero"; itemKey: string; note: string }
-  | { type: "menu_packaging"; code: string; packaging: { key: string; qty: number }[]; note: string };
+  | { type: "menu_packaging"; code: string; packaging: { key: string; qty: number }[]; note: string }
+  | { type: "menu_price"; code: string; priceDineIn: number; note: string };
 
 /** Produces a new snapshot with owner corrections applied (the base snapshot is left untouched). */
 export function applyOverrides(base: CostingSnapshot, overrides: CostingOverride[]): CostingSnapshot {
@@ -65,6 +66,9 @@ export function applyOverrides(base: CostingSnapshot, overrides: CostingOverride
       it.costNote = `${o.type === "item_zero" ? "Confirmed no cost" : `Owner-entered cost ${o.unitCost} per ${it.baseUnit ?? "unit"}`}: ${o.note}`;
       if (it.prepared) it.prepared = { ...it.prepared, breakdown: "unavailable" };
       snap.issues = snap.issues.filter((i) => !(i.itemKey === it.key && /cost|subrecipe|not_in_master/.test(i.code)));
+    } else if (o.type === "menu_price") {
+      const m = snap.menu.find((x) => x.code === o.code);
+      if (m) m.priceDineIn = o.priceDineIn;
     } else {
       const m = snap.menu.find((x) => x.code === o.code);
       if (!m) continue;

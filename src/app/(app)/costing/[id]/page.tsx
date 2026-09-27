@@ -81,7 +81,13 @@ export default async function CostingVersionPage({ params, searchParams }: { par
           <ul className="list-disc pl-5 text-sm">
             {v.overrides.map((o, i) => (
               <li key={i}>
-                {o.type === "item_cost" ? `${names.get(o.itemKey) ?? o.itemKey}: unit cost set to AED ${o.unitCost}` : o.type === "item_zero" ? `${names.get(o.itemKey) ?? o.itemKey}: confirmed zero cost` : `${o.code}: packaging changed`} — {o.note}
+                {o.type === "item_cost"
+                  ? `${names.get(o.itemKey) ?? o.itemKey}: unit cost set to AED ${o.unitCost}`
+                  : o.type === "item_zero"
+                    ? `${names.get(o.itemKey) ?? o.itemKey}: confirmed zero cost`
+                    : o.type === "menu_price"
+                      ? `${names.get(`menu:${o.code}`) ?? o.code}: selling price set to AED ${o.priceDineIn}`
+                      : `${o.code}: packaging changed`} — {o.note}
               </li>
             ))}
           </ul>
@@ -104,6 +110,7 @@ export default async function CostingVersionPage({ params, searchParams }: { par
                   <th>Code</th>
                   <th>Item</th>
                   <th>Mode</th>
+                  <th className="r">Selling price</th>
                   <th className="r">App food</th>
                   <th className="r">Workbook food</th>
                   <th className="r">Diff</th>
@@ -124,6 +131,22 @@ export default async function CostingVersionPage({ params, searchParams }: { par
                         <div className="text-xs text-ink-soft">{m.category}</div>
                       </td>
                       <td className="text-xs">{r.costMode.replace("_", " ")}</td>
+                      <td className="r">
+                        {m.priceDineIn === null ? "—" : fmtNum(m.priceDineIn, 2)}
+                        {canEdit && (
+                          <details className="text-left text-xs">
+                            <summary className="cursor-pointer text-ink-soft">Change</summary>
+                            <ActionForm action={addOverrideAction} className="mt-1 flex flex-col gap-1">
+                              <input type="hidden" name="versionId" value={v.id} />
+                              <input type="hidden" name="kind" value="price" />
+                              <input type="hidden" name="menuCode" value={m.code} />
+                              <input name="price" placeholder="AED" inputMode="decimal" aria-label={`New selling price for ${m.name}`} className="input w-24 py-1 text-xs" />
+                              <input name="note" placeholder="Reason (required)" className="input w-32 py-1 text-xs" />
+                              <Submit className="btn btn-ghost btn-sm">New version</Submit>
+                            </ActionForm>
+                          </details>
+                        )}
+                      </td>
                       <td className="r">
                         {fmtNum(r.appFood.toString(), 3)}
                         {r.incomplete && <span className="ml-1 text-xs text-red">incomplete</span>}

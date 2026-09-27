@@ -234,15 +234,22 @@ export async function addOverrideAction(_: ActionState, fd: FormData): Promise<A
   let id = 0;
   const res = await run("costing", async (actor) => {
     const from = Number(str(fd, "versionId"));
-    const itemKey = str(fd, "itemKey");
     const kind = str(fd, "kind");
     const note = str(fd, "note");
     if (!note) throw new Error("Add a note explaining the correction.");
     const base = await getVersion(from);
     if (!base) throw new Error("Costing version not found.");
-    if (!base.snapshot.items.some((i) => i.key === itemKey)) throw new Error("Unknown item.");
-    const o: CostingOverride = kind === "zero" ? { type: "item_zero", itemKey, note } : { type: "item_cost", itemKey, unitCost: decimal(str(fd, "unitCost"), "Unit cost"), note };
-    const v = await deriveVersion(from, [o], note, actor);
+    let o: CostingOverride;
+    if (kind === "price") {
+      const code = str(fd, "menuCode");
+      if (!base.snapshot.menu.some((m) => m.code === code)) throw new Error("Unknown menu item.");
+      o = { type: "menu_price", code, priceDineIn: Number(decimal(str(fd, "price"), "Selling price")), note };
+    } else {
+      const itemKey = str(fd, "itemKey");
+      if (!base.snapshot.items.some((i) => i.key === itemKey)) throw new Error("Unknown item.");
+      o = kind === "zero" ? { type: "item_zero", itemKey, note } : { type: "item_cost", itemKey, unitCost: decimal(str(fd, "unitCost"), "Unit cost"), note };
+    }
+    const v = await deriveVersion(from, [...base.overrides, o], note, actor);
     id = v.id;
     return `Created ${v.label} (draft). Activate it to use the correction.`;
   });
