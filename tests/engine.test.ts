@@ -210,6 +210,16 @@ describe("missing costs", () => {
     expect(snap.items.find((i) => i.key === water!.key)!.costStatus).toBe("missing");
     expect(fixed.items.find((i) => i.key === water!.key)!.costStatus).toBe("confirmed_zero");
   });
+
+  it("menu price overrides change the revenue split in a new snapshot only", () => {
+    const repriced = applyOverrides(snap, [{ type: "menu_price", code: "M012", priceDineIn: 7, note: "new menu" }]);
+    expect(snap.menu.find((m) => m.code === "M012")!.priceDineIn).toBe(8);
+    expect(repriced.menu.find((m) => m.code === "M012")!.priceDineIn).toBe(7);
+    const o = order([["M001", 1], ["M012", 1]], { salesAfterDiscount: "22" });
+    const r = run([o], { snapshot: repriced, settings: noBatch() });
+    const fries = r.menuItems.find((m) => m.menuCode === "M012")!;
+    expect(D(fries.revenueExVat).toFixed(6)).toBe(D(o.salesAfterDiscount!).div(1.05).times(7).div(36).toFixed(6));
+  });
 });
 
 describe("range aggregation", () => {
